@@ -1,26 +1,47 @@
 version: "3.9"
-
 services:
   devopsdb:
-    image: shaikmustafa/automation:db
+    image: nikhilkotharu/dockerapp:db
     ports:
       - "3306:3306"
     deploy:
       replicas: 3
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: '128m'
+        reservations:
+          cpus: '0.5'
+          memory: '100m'
     networks:
       - mynetwork
+    volumes:
+      - db_volume:/opt/nikhil
 
   application:
-    image: shaikmustafa/automation:app
+    image: nikhilkotharu/dockerapp:app
     ports:
       - "1111:8080"
     deploy:
       replicas: 3
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: '128m'
+        reservations:
+          cpus: '0.5'
+          memory: '100m'
     depends_on:
       - devopsdb
     networks:
       - mynetwork
+    volumes:
+      - app_volume:/opt/nikhil
 
 networks:
   mynetwork:
     driver: overlay
+
+volumes:
+  db_volume:
+  app_volume:

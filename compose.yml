@@ -19,7 +19,7 @@ services:
       - db_volume:/opt/nikhil
 
   application:
-    image: nikhilkotharu/dockerapp:app
+    image: nikhilkotharu/dockerapp:web
     ports:
       - "1111:8080"
     deploy:

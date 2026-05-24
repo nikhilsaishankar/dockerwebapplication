@@ -3,7 +3,7 @@ services:
   devopsdb:
     image: nikhilkotharu/dockerapp:db
     ports:
-      - "3306:3306"
+      - "4567:3306"
     deploy:
       replicas: 3
       resources:
@@ -21,7 +21,7 @@ services:
   application:
     image: nikhilkotharu/dockerapp:web
     ports:
-      - "1111:8080"
+      - "6666:8080"
     deploy:
       replicas: 3
       resources:

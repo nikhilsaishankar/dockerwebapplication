@@ -232,21 +232,85 @@ Swarm nodes to pull:
 
 ![Docker Hub repository tags](docs/images/img6.png)
 
-### Stage 8 — Deploy with Docker Swarm Stack
+### Stage 8 — Deploy with Docker Stack
 
-The application is rolled out as a **Swarm stack** defined in
-[`compose.yml`](./compose.yml). Each service runs **3 replicas** spread across
-the cluster on an `overlay` network, with restart policies for self-healing and
-resource limits to protect node capacity.
+The application is rolled out as a **Docker Stack** defined in
+[`compose.yml`](./compose.yml). A stack is the bridge between the two worlds:
+it consumes a standard Docker **Compose** file but schedules each service as a
+replicated, cluster-aware **Swarm** workload — so a single file describes both
+*what* to run and *how* to run it at scale.
+
+#### Understanding `compose.yml`
+
+The file declares two services, one network, and two named volumes:
+
+```yaml
+version: "3.9"
+services:
+  devopsdb:                              # MySQL database service
+    image: nikhilkotharu/dockerapp:db
+    ports:
+      - "3306:3306"                      # expose MySQL on the cluster
+    deploy:
+      replicas: 3                        # 3 tasks for availability
+      restart_policy:
+        condition: any                   # self-heal — always restart
+      resources:
+        limits:    { cpus: '0.3', memory: '256m' }   # hard ceiling
+        reservations: { cpus: '0.1', memory: '128m' } # guaranteed minimum
+    networks:
+      - mynetwork
+    volumes:
+      - db_volume:/opt/nikhil            # persist data across restarts
+
+  application:                           # Java/Tomcat web service
+    image: nikhilkotharu/dockerapp:web
+    ports:
+      - "7777:8080"                      # host 7777 → Tomcat 8080
+    deploy:
+      replicas: 3
+      restart_policy:
+        condition: any
+      resources:
+        limits:    { cpus: '0.3', memory: '256m' }
+        reservations: { cpus: '0.1', memory: '128m' }
+    depends_on:
+      - devopsdb                         # start after the database
+    networks:
+      - mynetwork
+    volumes:
+      - app_volume:/opt/nikhil
+
+networks:
+  mynetwork:
+    driver: overlay                      # multi-host networking across nodes
+
+volumes:
+  db_volume:
+  app_volume:
+```
+
+Key directives:
+
+| Directive | What it does |
+|-----------|--------------|
+| `deploy.replicas: 3` | Runs 3 tasks per service, load-balanced via the routing mesh |
+| `restart_policy.condition: any` | Self-healing — failed tasks are always rescheduled |
+| `resources.limits` / `reservations` | Caps and guarantees CPU/memory per task |
+| `networks.driver: overlay` | Multi-host network so containers talk across nodes |
+| `volumes` | Named volumes keep data persistent across task restarts |
+| `depends_on` | Ensures the database service starts before the application |
+
+#### Deploy commands
 
 ```bash
-# Initialize the swarm (manager node, one-time)
+# Initialize the cluster (manager node, one-time)
 docker swarm init
 
 # Join workers using the token printed by `docker swarm init`
 docker swarm join --token <worker-token> <manager-ip>:2377
 
-# Deploy / update the stack
+# Deploy / update the stack from the compose file
 docker stack deploy -c compose.yml stackname
 
 # Verify the rollout

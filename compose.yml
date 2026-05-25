@@ -5,32 +5,36 @@ services:
     ports:
       - "3306:3306"
     deploy:
-      replicas: 1
+      replicas: 3
+      restart_policy:
+        condition: any    
       resources:
         limits:
-          cpus: '1.0'
-          memory: '1024m'
+          cpus: '0.3'
+          memory: '256m'
         reservations:
-          cpus: '0.5'
-          memory: '512m'
+          cpus: '0.1'
+          memory: '128m'
     networks:
       - mynetwork
     volumes:
       - db_volume:/opt/nikhil
 
   application:
-    image: nikhilkotharu/dockerapp:app
+    image: nikhilkotharu/dockerapp:web
     ports:
-      - "1111:8080"
+      - "7777:8080"
     deploy:
-      replicas: 1
+      replicas: 3
+      restart_policy:
+        condition: any    
       resources:
         limits:
-          cpus: '1.0'
-          memory: '1024m'
+          cpus: '0.3'
+          memory: '256m'
         reservations:
-          cpus: '0.5'
-          memory: '512m'
+          cpus: '0.1'
+          memory: '128m'
     depends_on:
       - devopsdb
     networks:
@@ -41,7 +45,6 @@ services:
 networks:
   mynetwork:
     driver: overlay
-
 volumes:
   db_volume:
   app_volume:
